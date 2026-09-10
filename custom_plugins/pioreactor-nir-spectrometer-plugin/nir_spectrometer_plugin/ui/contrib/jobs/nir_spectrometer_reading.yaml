@@ -1,0 +1,7 @@
+---
+display_name: NIR Spectrometer Reading
+job_name: nir_spectrometer_reading
+display: true
+source: nir_spectrometer_plugin
+description: Records stepped NIR transmission and apparent OD from an AS7341 using an external Pioreactor LED channel.
+published_settings: []
