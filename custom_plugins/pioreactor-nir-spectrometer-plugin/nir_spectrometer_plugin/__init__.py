@@ -19,7 +19,6 @@ from pioreactor.background_jobs.base import BackgroundJobWithDodgingContrib
 from pioreactor.background_jobs.leader.mqtt_to_db_streaming import TopicToParserToTable
 from pioreactor.background_jobs.leader.mqtt_to_db_streaming import produce_metadata
 from pioreactor.background_jobs.leader.mqtt_to_db_streaming import register_source_to_sink
-from pioreactor.cli.run import run
 from pioreactor.config import config
 from pioreactor.exc import HardwareNotFoundError
 from pioreactor.utils import is_pio_job_running
@@ -30,8 +29,12 @@ from pioreactor.whoami import get_assigned_experiment_name
 from pioreactor.whoami import get_unit_name
 from spectrometer_reading_plugin._vendor import adafruit_as7341
 
-PLUGIN_NAME = "nir_spectrometer_plugin"
+__plugin_name__ = "nir-spectrometer-plugin"
+__plugin_version__ = "0.1.0"
+
+PLUGIN_NAME = __plugin_name__
 JOB_NAME = "nir_spectrometer_reading"
+CONFIG_SECTION = f"{JOB_NAME}.config"
 BLANK_CACHE = "nir_spectrometer_blank"
 MEASUREMENT_TOPIC = "nir_spectrometer_reading/measurement"
 DEFAULT_LEVELS = tuple(range(10, 101, 10))
@@ -53,8 +56,8 @@ def _parse_levels(raw: str) -> tuple[int, ...]:
 
 
 def _gain_time_normalize(sensor: Any, reading: int) -> float:
-    # Keep the same normalization convention as Pioreactor's official
-    # spectrometer-reading-plugin so datasets remain directly comparable.
+    # Match the normalization convention used by Pioreactor's official
+    # spectrometer-reading-plugin so exported values remain comparable.
     return float(reading) / (2 ** (sensor.gain - 1)) / sensor.atime
 
 
@@ -103,13 +106,23 @@ def _load_blank(unit: str, led_channel: str) -> dict[str, float]:
     return {str(k): float(v) for k, v in values.items()}
 
 
+def _configured_levels() -> tuple[int, ...]:
+    return _parse_levels(
+        config.get(
+            CONFIG_SECTION,
+            "intensity_levels_pct",
+            fallback=",".join(str(v) for v in DEFAULT_LEVELS),
+        )
+    )
+
+
 def _make_sensor() -> Any:
     try:
         sensor = adafruit_as7341.AS7341(board.I2C())
     except Exception as exc:
         raise HardwareNotFoundError("AS7341 not detected on the Pioreactor I2C bus") from exc
 
-    sensor.gain = config.getint("nir_spectrometer.config", "gain", fallback=10)
+    sensor.gain = config.getint(CONFIG_SECTION, "gain", fallback=10)
     return sensor
 
 
@@ -179,22 +192,16 @@ class NirSpectrometerReading(BackgroundJobWithDodgingContrib):
         )
 
         self.sensor = _make_sensor()
-        self.led_channel = config.get("nir_spectrometer.config", "led_channel", fallback="D").upper()
+        self.led_channel = config.get(CONFIG_SECTION, "led_channel", fallback="D").upper()
         if self.led_channel not in led_utils.ALL_LED_CHANNELS:
             self.clean_up()
             raise ValueError(f"Invalid LED channel {self.led_channel!r}; expected A, B, C, or D")
 
-        self.levels = _parse_levels(
-            config.get(
-                "nir_spectrometer.config",
-                "intensity_levels_pct",
-                fallback=",".join(str(v) for v in DEFAULT_LEVELS),
-            )
-        )
-        self.settle_time_s = config.getfloat("nir_spectrometer.config", "settle_time_s", fallback=0.15)
-        self.averages = config.getint("nir_spectrometer.config", "averages_per_point", fallback=3)
-        self.min_signal_raw = config.getfloat("nir_spectrometer.config", "minimum_signal_raw", fallback=25.0)
-        self.saturation_raw = config.getint("nir_spectrometer.config", "saturation_raw", fallback=65000)
+        self.levels = _configured_levels()
+        self.settle_time_s = config.getfloat(CONFIG_SECTION, "settle_time_s", fallback=0.15)
+        self.averages = config.getint(CONFIG_SECTION, "averages_per_point", fallback=3)
+        self.min_signal_raw = config.getfloat(CONFIG_SECTION, "minimum_signal_raw", fallback=25.0)
+        self.saturation_raw = config.getint(CONFIG_SECTION, "saturation_raw", fallback=65000)
         self.blank = _load_blank(unit, self.led_channel)
 
         self.point_index = 0
@@ -310,7 +317,7 @@ class NirSpectrometerReading(BackgroundJobWithDodgingContrib):
         with suppress(AttributeError):
             self.continuous_sampling_timer.cancel()
 
-        interval_s = config.getfloat("nir_spectrometer.config", "continuous_interval_s", fallback=5.0)
+        interval_s = config.getfloat(CONFIG_SECTION, "continuous_interval_s", fallback=5.0)
         if interval_s <= 0:
             self.logger.error("continuous_interval_s must be > 0")
             self.clean_up()
@@ -325,19 +332,23 @@ class NirSpectrometerReading(BackgroundJobWithDodgingContrib):
         ).start()
 
 
-@run.command(name=JOB_NAME)
-def start_nir_spectrometer_reading() -> None:
+@click.command(name=JOB_NAME)
+def click_nir_spectrometer_reading() -> None:
     """Start stepped NIR transmission / apparent-OD measurements."""
     unit = get_unit_name()
     experiment = get_assigned_experiment_name(unit)
-    enable_dodging_od = config.getboolean("nir_spectrometer.config", "enable_dodging_od", fallback=True)
-    job = NirSpectrometerReading(unit=unit, experiment=experiment, enable_dodging_od=enable_dodging_od)
-    job.block_until_disconnected()
+    enable_dodging_od = config.getboolean(CONFIG_SECTION, "enable_dodging_od", fallback=True)
+    with NirSpectrometerReading(
+        unit=unit,
+        experiment=experiment,
+        enable_dodging_od=enable_dodging_od,
+    ) as job:
+        job.block_until_disconnected()
 
 
-@run.command(name="nir_spectrometer_blank")
+@click.command(name="nir_spectrometer_blank")
 @click.option("--samples", default=None, type=int, help="Samples per LED level; overrides configuration.")
-def capture_nir_blank(samples: int | None) -> None:
+def click_nir_spectrometer_blank(samples: int | None) -> None:
     """Capture and persist blank-medium NIR references at every configured LED intensity."""
     unit = get_unit_name()
     experiment = get_assigned_experiment_name(unit)
@@ -348,16 +359,15 @@ def capture_nir_blank(samples: int | None) -> None:
         raise click.ClickException(f"Stop {JOB_NAME} before capturing the NIR blank reference.")
 
     sensor = _make_sensor()
-    led_channel = config.get("nir_spectrometer.config", "led_channel", fallback="D").upper()
-    levels = _parse_levels(
-        config.get(
-            "nir_spectrometer.config",
-            "intensity_levels_pct",
-            fallback=",".join(str(v) for v in DEFAULT_LEVELS),
-        )
-    )
-    settle_time_s = config.getfloat("nir_spectrometer.config", "settle_time_s", fallback=0.15)
-    averages = samples or config.getint("nir_spectrometer.config", "blank_averages_per_point", fallback=5)
+    led_channel = config.get(CONFIG_SECTION, "led_channel", fallback="D").upper()
+    if led_channel not in led_utils.ALL_LED_CHANNELS:
+        raise click.ClickException(f"Invalid LED channel {led_channel!r}; expected A, B, C, or D")
+
+    levels = _configured_levels()
+    settle_time_s = config.getfloat(CONFIG_SECTION, "settle_time_s", fallback=0.15)
+    averages = samples or config.getint(CONFIG_SECTION, "blank_averages_per_point", fallback=5)
+    if averages <= 0:
+        raise click.ClickException("samples must be > 0")
 
     references: dict[str, float] = {}
     click.echo(f"Capturing NIR blank on LED channel {led_channel}: {levels}")
