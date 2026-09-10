@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from contextlib import suppress
+from json import dumps
+from json import loads
 from math import isfinite
 from math import log10
 from statistics import mean
@@ -11,7 +13,6 @@ from typing import Any
 import board
 import click
 from msgspec.json import decode
-from pioreactor import pubsub
 from pioreactor import types as pt
 from pioreactor.actions import led_intensity as led_utils
 from pioreactor.background_jobs.base import BackgroundJobWithDodgingContrib
@@ -98,7 +99,8 @@ def _load_blank(unit: str, led_channel: str) -> dict[str, float]:
         raw = cache.get(_blank_key(unit, led_channel))
     if raw is None:
         return {}
-    return {str(k): float(v) for k, v in decode(raw).items()}
+    values = loads(raw)
+    return {str(k): float(v) for k, v in values.items()}
 
 
 def _make_sensor() -> Any:
@@ -136,7 +138,6 @@ def _measure_point(
             unit=unit,
             experiment=experiment,
             source_of_event=source_of_event,
-            pubsub_client=None,
             verbose=False,
             lock_owner=lock_owner,
         ):
@@ -148,7 +149,6 @@ def _measure_point(
                 unit=unit,
                 experiment=experiment,
                 source_of_event=source_of_event,
-                pubsub_client=None,
                 verbose=False,
                 lock_owner=lock_owner,
             ):
@@ -218,7 +218,6 @@ class NirSpectrometerReading(BackgroundJobWithDodgingContrib):
             self.continuous_sampling_timer.cancel()
 
     def action_to_do_before_od_reading(self) -> None:
-        # BackgroundJobWithDodgingContrib pauses this job around the standard OD reading.
         return None
 
     def action_to_do_after_od_reading(self) -> None:
@@ -383,6 +382,6 @@ def capture_nir_blank(samples: int | None) -> None:
         click.echo(f"  {intensity:>3}%: dark={dark_raw}, lit={lit_raw}, corrected={signal:.1f}")
 
     with local_persistent_storage(BLANK_CACHE) as cache:
-        cache[_blank_key(unit, led_channel)] = pubsub.dumps(references)
+        cache[_blank_key(unit, led_channel)] = dumps(references)
 
     click.echo("NIR blank reference stored successfully.")
