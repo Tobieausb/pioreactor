@@ -1,0 +1,42 @@
+---
+display_name: NIR Spectrometer Reading
+job_name: nir_spectrometer_reading
+display: true
+source: nir_spectrometer_plugin
+description: Stepped NIR transmission and apparent OD from the AS7341 using an external Pioreactor LED channel.
+published_settings:
+  - key: intensity_pct
+    unit: "%"
+    label: NIR LED intensity
+    description: Intensity used for the latest measurement point.
+    type: numeric
+    default: null
+    display: true
+  - key: nir_signal
+    unit: AU
+    label: NIR signal
+    description: Dark-corrected AS7341 NIR signal normalized by gain and integration time.
+    type: numeric
+    default: null
+    display: true
+  - key: nir_od
+    unit: AU
+    label: Apparent NIR OD
+    description: Blank-normalized apparent optical density calculated as -log10(I/I0).
+    type: numeric
+    default: null
+    display: true
+  - key: valid
+    unit: null
+    label: Valid reading
+    description: True when signal, saturation and blank checks passed.
+    type: boolean
+    default: null
+    display: true
+  - key: status
+    unit: null
+    label: Measurement status
+    description: Quality-control status for the latest point.
+    type: string
+    default: null
+    display: true
