@@ -1,0 +1,7 @@
+---
+display_name: Optical Sweep Calibration
+job_name: optical_sweep_calibration
+display: true
+source: nir_spectrometer_plugin
+description: With blank medium in place, records 10-100% reference sweeps for the NIR LED and the blue-excitation LED. Run before optical_sweep_reading.
+published_settings: []
