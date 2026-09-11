@@ -1,0 +1,11 @@
+---
+data_source: optical_sweep_results
+data_source_column: green_signal
+title: 515 nm fluorescence
+mqtt_topic: optical_sweep_reading/green_signal
+chart_key: optical_green_signal
+source: app
+y_axis_label: AU at reference excitation
+interpolation: stepAfter
+lookback: 100000
+fixed_decimals: 4
