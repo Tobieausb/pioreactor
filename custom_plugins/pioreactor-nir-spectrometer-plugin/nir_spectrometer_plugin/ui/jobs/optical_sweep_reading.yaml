@@ -1,0 +1,56 @@
+---
+display_name: Optical Sweep Reading
+job_name: optical_sweep_reading
+display: true
+source: nir_spectrometer_plugin
+description: Sequential AS7341 NIR transmission and blue-excited 515 nm fluorescence sweeps with automatic linear-range selection.
+published_settings:
+  - key: nir_od
+    unit: AU
+    label: Apparent NIR OD
+    description: Final apparent NIR OD from the three central points of the accepted linear plateau.
+    type: numeric
+    default: null
+    display: true
+  - key: nir_transmission
+    unit: "%"
+    label: NIR transmission
+    description: Median sample-to-blank transmission of the three points used for the final NIR OD.
+    type: numeric
+    default: null
+    display: true
+  - key: green_signal
+    unit: AU
+    label: 515 nm fluorescence
+    description: Blank-corrected 515 nm signal normalized to the configured reference blue-LED intensity.
+    type: numeric
+    default: null
+    display: true
+  - key: nir_status
+    unit: null
+    label: NIR quality
+    description: Quality status of the latest NIR sweep. The displayed value updates only after a valid sweep.
+    type: string
+    default: null
+    display: true
+  - key: green_status
+    unit: null
+    label: Green quality
+    description: Quality status of the latest blue-excited 515 nm sweep. The displayed value updates only after a valid sweep.
+    type: string
+    default: null
+    display: true
+  - key: sweep_id
+    unit: null
+    label: Sweep ID
+    description: Identifier of the next or active paired optical sweep cycle.
+    type: numeric
+    default: null
+    display: true
+  - key: last_sweep_timestamp
+    unit: null
+    label: Last sweep
+    description: UTC timestamp of the most recently completed paired sweep.
+    type: string
+    default: null
+    display: true

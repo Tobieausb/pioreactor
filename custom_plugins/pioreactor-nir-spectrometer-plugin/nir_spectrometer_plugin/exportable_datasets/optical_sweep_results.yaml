@@ -1,0 +1,10 @@
+dataset_name: optical_sweep_results
+default_order_by: timestamp
+description: Final quality-controlled apparent NIR OD and 515 nm fluorescence values produced once per completed paired sweep.
+display_name: Optical sweep final results
+has_experiment: true
+has_unit: true
+source: nir-spectrometer-plugin
+table: optical_sweep_results
+timestamp_columns:
+- timestamp

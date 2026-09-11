@@ -1,0 +1,12 @@
+version: "1.0"
+experiment_profile_name: Optical sweep example
+metadata:
+  author: Tobias Ebbing
+  description: Starts the paired NIR and blue-excited 515 nm optical sweep job. Perform Optical Sweep Calibration manually with blank medium first.
+
+common:
+  jobs:
+    optical_sweep_reading:
+      actions:
+        - type: start
+          t: 0s
