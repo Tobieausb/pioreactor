@@ -1,0 +1,10 @@
+dataset_name: optical_sweep_points
+default_order_by: timestamp
+description: Intensity-resolved raw, blank-referenced and QC-labelled points from NIR and blue-excited 515 nm sweeps.
+display_name: Optical sweep raw points
+has_experiment: true
+has_unit: true
+source: nir-spectrometer-plugin
+table: optical_sweep_points
+timestamp_columns:
+- timestamp
