@@ -1,0 +1,10 @@
+dataset_name: optical_sweep_calibrations
+default_order_by: timestamp
+description: Blank-medium calibration points acquired across all configured LED intensities for NIR and blue-excited 515 nm measurements.
+display_name: Optical sweep calibrations
+has_experiment: true
+has_unit: true
+source: nir-spectrometer-plugin
+table: optical_sweep_calibrations
+timestamp_columns:
+- timestamp
