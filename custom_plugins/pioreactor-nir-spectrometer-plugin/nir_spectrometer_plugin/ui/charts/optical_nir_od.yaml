@@ -1,0 +1,11 @@
+---
+data_source: optical_sweep_results
+data_source_column: nir_od
+title: Apparent NIR OD
+mqtt_topic: optical_sweep_reading/nir_od
+chart_key: optical_nir_od
+source: app
+y_axis_label: AU
+interpolation: stepAfter
+lookback: 100000
+fixed_decimals: 4
